@@ -1,0 +1,5 @@
+# dsh-astock is a tools-only plugin. It installs no UI and no services,
+# so the patch only inserts the plugin itself.
+- insert:
+    - id: dsh-astock
+      name: dsh-astock
