@@ -6,3 +6,5 @@ lib/
 .DS_Store
 /smoke.ts
 /smoke-val.ts
+report.txt
+render_preview.py
