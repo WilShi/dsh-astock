@@ -1,4 +1,4 @@
-import { name, inject, apply } from "./lib/index.js";
+import { name, inject, apply } from "../lib/index.js";
 
 console.log("plugin name:", name);
 console.log("inject:", JSON.stringify(inject));
