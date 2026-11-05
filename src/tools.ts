@@ -52,10 +52,14 @@ const searchTool = defineTool({
         },
       },
     },
-    render: (_args, v) =>
-      text(v.hits.length === 0
-        ? `未找到与「${v.query}」匹配的 A 股标的`
-        : `找到 ${v.hits.length} 个标的：\n` + v.hits.map((h: StockHit) => `- ${h.code} ${h.name}（${h.market}）`).join("\n")),
+    render: (_args, value) => {
+      const v = value as { query: string; hits: StockHit[] };
+      return text(
+        v.hits.length === 0
+          ? `未找到与「${v.query}」匹配的 A 股标的`
+          : `找到 ${v.hits.length} 个标的：\n` + v.hits.map((h) => `- ${h.code} ${h.name}（${h.market}）`).join("\n"),
+      );
+    },
   },
   async execute(args) {
     const hits = await searchStocks(args.keyword, args.limit ?? 10);
@@ -86,13 +90,15 @@ const quoteTool = defineTool({
         source: { type: "string" }, asOf: { type: "string" },
       },
     },
-    render: (_args, q) =>
-      text([
+    render: (_args, value) => {
+      const q = value as { name: string; code: string; price: number; changePct: number; peTtm: number; pb: number; totalMarketCap: number; industry: string; source: string };
+      return text([
         `${q.name}（${q.code}）${q.price} 元，${q.changePct >= 0 ? "+" : ""}${q.changePct.toFixed(2)}%`,
-        `总市值 ${formatMoney(q.totalMarketCap, "亿元")}｜PE(TTM) ${q.peTtm === null ? "—" : q.peTtm.toFixed(2)}｜PB ${q.pb === null ? "—" : q.pb.toFixed(2)}`,
+        `总市值 ${formatMoney(q.totalMarketCap, "亿元")}｜PE(TTM) ${q.peTtm > 0 ? q.peTtm.toFixed(2) : "—"}｜PB ${q.pb > 0 ? q.pb.toFixed(2) : "—"}`,
         q.industry ? `行业：${q.industry}` : "（当前数据源未返回行业标签）",
         `数据源：${q.source}`,
-      ].join("\n")),
+      ].join("\n"));
+    },
   },
   async execute(args) {
     const q = await getQuote(args.code);
@@ -136,15 +142,16 @@ const klineTool = defineTool({
         },
       },
     },
-    render: (_args, v) => {
-      const n = v.bars.length;
-      if (!n) return text("未取到 K 线数据");
-      const first = v.bars[0];
-      const last = v.bars[n - 1];
+    render: (_args, value) => {
+      const v = value as { code: string; bars: Kline[] };
+      const bars = v.bars ?? [];
+      if (!bars.length) return text("未取到 K 线数据");
+      const first = bars[0];
+      const last = bars[bars.length - 1];
       const pct = ((last.close - first.close) / first.close) * 100;
-      const high = Math.max(...v.bars.map((b: Kline) => b.high));
-      const low = Math.min(...v.bars.map((b: Kline) => b.low));
-      return text(`${v.code} 最近 ${n} 个交易日（${first.date} 至 ${last.date}）：区间涨跌 ${pct.toFixed(2)}%，最高 ${high}，最低 ${low}`);
+      const high = Math.max(...bars.map((b) => b.high));
+      const low = Math.min(...bars.map((b) => b.low));
+      return text(`${v.code} 最近 ${bars.length} 个交易日（${first.date} 至 ${last.date}）：区间涨跌 ${pct.toFixed(2)}%，最高 ${high}，最低 ${low}`);
     },
   },
   async execute(args) {
@@ -191,8 +198,9 @@ const financialsTool = defineTool({
         },
       },
     },
-    render: (_args, v) => {
-      const latest = v.periods[0];
+    render: (_args, value) => {
+      const v = value as { ttmRevenue: number; ttmNetProfit: number; ttmBasis: string; periods: FinancialPeriod[] };
+      const latest = (v.periods ?? [])[0];
       const head = latest
         ? `${latest.reportDate} ${latest.periodLabel}：营收 ${formatMoney(latest.revenue, "亿元")}，净利 ${formatMoney(latest.netProfit, "亿元")}，ROE ${formatPct(latest.roe)}，毛利率 ${formatPct(latest.grossMargin)}`
         : "无财报数据";
@@ -244,15 +252,20 @@ const valuationTool = defineTool({
         basis: { type: "string" },
       },
     },
-    render: (_args, v) =>
-      text([
+    render: (_args, value) => {
+      const v = value as {
+        name: string; code: string; price: number; model: string;
+        fairValuePerShare: number; upsidePct: number; impliedGrowthPct: number; basis: string;
+      };
+      return text([
         `${v.name}（${v.code}）现价 ${v.price} 元，模型：${v.model}`,
         v.fairValuePerShare > 0
           ? `内在价值 ${v.fairValuePerShare.toFixed(2)} 元，${v.upsidePct >= 0 ? "低估" : "高估"} ${Math.abs(v.upsidePct).toFixed(1)}%`
           : "无法给出内在价值",
         v.impliedGrowthPct !== -999 ? `当前股价隐含 5 年增速 ${v.impliedGrowthPct.toFixed(1)}%` : "",
         v.basis,
-      ].filter(Boolean).join("\n")),
+      ].filter(Boolean).join("\n"));
+    },
   },
   async execute(args) {
     const assumptions: DcfAssumptions = {
@@ -316,7 +329,7 @@ const reportTool = defineTool({
         source: { type: "string" },
       },
     },
-    render: (_args, v) => text(v.markdown),
+    render: (_args, value) => text((value as { markdown: string }).markdown),
   },
   async execute(args) {
     const [q, fins, bars] = await Promise.all([

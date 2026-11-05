@@ -1,5 +1,7 @@
 node_modules/
 lib/
+.pnpm-store/
+.npm-cache/
 *.log
 .DS_Store
 /smoke.ts

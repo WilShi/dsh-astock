@@ -6,7 +6,7 @@
  * the output always shows the basis so the agent can explain itself.
  */
 
-import type { FinancialPeriod, Quote } from "./datasource/types.ts";
+import type { FinancialPeriod, Quote } from "../datasource/types.ts";
 
 export interface TtmFigure {
   value: number | null;
